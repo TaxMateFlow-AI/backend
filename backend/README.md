@@ -1,34 +1,4 @@
-# Automated Tax Filing Chatbot Backend
-
-Welcome to the backend repository for the **Automated Tax Filing Chatbot**! This backend is built using **Python FastAPI**, a modern, fast web framework that is ideal for APIs. The backend handles OCR processing for W-2 forms, integrates with the IRS API for tax filing, and powers the chatbot's functionality.
-
----
-
-## Features of the Backend
-
-- **OCR Integration**: Processes uploaded W-2 forms to extract data using Optical Character Recognition (OCR).
-- **IRS API Integration**: Connects with the IRS API to streamline tax filing and retrieval of tax-related information.
-- **Chatbot Logic**: Implements the core chatbot functionality for user interaction and tax-related assistance.
-- **Secure Data Handling**: Ensures sensitive user data is encrypted and complies with data security standards.
-- **Scalable Architecture**: Built with FastAPI to support high-performance and scalability.
-- **RESTful APIs**: Provides endpoints to serve the frontend and manage chatbot interactions.
-
----
-
-## Tech Stack
-
-- **FastAPI**: The web framework for building APIs.
-- **Python 3.9+**: The programming language for the backend.
-- **Tesseract OCR**: For extracting text from W-2 forms.
-- **IRS API**: For tax-related data and filing integration.
-- **SQLAlchemy**: For database interactions (or any other ORM of your choice).
-- **Uvicorn**: For running the FastAPI app.
-- **Pydantic**: For data validation and serialization.
-- **JWT**: For user authentication and authorization (optional).
-
----
-
-## Getting Started
+# FastAPI Project - Backend
 
 ## Requirements
 
@@ -200,48 +170,3 @@ The email templates are in `./backend/app/email-templates/`. Here, there are two
 Before continuing, ensure you have the [MJML extension](https://marketplace.visualstudio.com/items?itemName=attilabuti.vscode-mjml) installed in your VS Code.
 
 Once you have the MJML extension installed, you can create a new email template in the `src` directory. After creating the new email template and with the `.mjml` file open in your editor, open the command palette with `Ctrl+Shift+P` and search for `MJML: Export to HTML`. This will convert the `.mjml` file to a `.html` file and now you can save it in the build directory.
-## Future Enhancements
-
-- Implement AI/ML for better chatbot NLP capabilities.
-- Add support for additional tax forms such as 1099s.
-- Implement rate limiting and caching for API performance optimization.
-- Expand logging and monitoring for better error tracking and debugging.
-
----
-
-## Contributing
-
-We welcome contributions! To contribute:
-
-1. Fork the repository.
-2. Create a feature branch:
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-3. Commit your changes:
-   ```bash
-   git commit -m "Add your feature description"
-   ```
-4. Push to the branch:
-   ```bash
-   git push origin feature/your-feature-name
-   ```
-5. Open a pull request.
-
----
-
-## License
-
-This project is licensed under the **MIT License**. See the `LICENSE` file for more details.
-
----
-
-## Acknowledgments
-
-- FastAPI team for providing a robust framework.
-- Tesseract OCR for their open-source OCR capabilities.
-- The IRS API for making tax data integration possible.
-
----
-
-Feel free to reach out for any questions or suggestions! 🚀
