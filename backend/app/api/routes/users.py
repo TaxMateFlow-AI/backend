@@ -1,5 +1,11 @@
 import uuid
 from typing import Any
+from datetime import timedelta
+
+import jwt
+from starlette.responses import RedirectResponse
+
+from app.core import security
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import col, delete, func, select
@@ -15,6 +21,7 @@ from app.core.security import get_password_hash, verify_password
 from app.models import (
     Item,
     Message,
+    Token,
     UpdatePassword,
     User,
     UserCreate,
@@ -75,7 +82,7 @@ def create_user(*, session: SessionDep, user_in: UserCreate) -> Any:
     return user
 
 
-@router.patch("/me", response_model=UserPublic)
+@router.post("/me", response_model=UserPublic)
 def update_user_me(
     *, session: SessionDep, user_in: UserUpdateMe, current_user: CurrentUser
 ) -> Any:
@@ -150,11 +157,53 @@ def register_user(session: SessionDep, user_in: UserRegister) -> Any:
     if user:
         raise HTTPException(
             status_code=400,
-            detail="The user with this email already exists in the system",
+            detail="You are already registered. Please log in or reset your password.",
         )
     user_create = UserCreate.model_validate(user_in)
     user = crud.create_user(session=session, user_create=user_create)
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+
+    result_token = Token(
+        access_token=security.create_access_token(
+            user.id, expires_delta=access_token_expires
+        )
+    )
+
+    print("------>", f"{settings.EMAIL_VERIFICATION_REDIRECT_URL}/{result_token.access_token}")
     return user
+
+@router.get("/verify-email/{token}", response_model=Message)
+def verify_email(token: str, session: SessionDep) -> Any:
+    """
+    Verify email from the provided link and redirect.
+    """
+    try:
+        # Decode the token to retrieve user ID
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[security.ALGORITHM])
+        user_id = payload.get("sub")
+
+        if not user_id:
+            next_url = "http://localhost:5173/signup"
+            return RedirectResponse(url=next_url)
+
+        user = session.get(User, user_id)
+
+        if not user:
+            next_url = "http://localhost:5173/signup"
+            return RedirectResponse(url=next_url)
+
+        # Mark the email as verified
+        session.add(user)
+        session.commit()
+
+        # Redirect to the next link
+        next_url = f"{settings.EMAIL_VERIFICATION_REDIRECT_URL}"
+        return RedirectResponse(url=next_url)
+
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=400, detail="Token has expired")
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=400, detail="Invalid token")
 
 
 @router.get("/{user_id}", response_model=UserPublic)
