@@ -123,3 +123,33 @@ class TokenPayload(SQLModel):
 class NewPassword(SQLModel):
     token: str
     new_password: str = Field(min_length=8, max_length=40)
+
+
+class W2FormModel(SQLModel):
+    employee_ssn: str = Field(default="", max_length=255)
+    employer_ein: str = Field(default="", max_length=255)
+    employer_name_address_zip: str = Field(default="", max_length=255)
+    control_number: str = Field(default="", max_length=255)
+    employee_first_name_initial: str = Field(default="", max_length=255)
+    employee_address_zip: str = Field(default="", max_length=255)
+    wages_tips_other_compensation: str = Field(default="", max_length=255)
+    federal_income_tax_withheld: str = Field(default="", max_length=255)
+    social_security_wages: str = Field(default="", max_length=255)
+    social_security_tax_withheld: str = Field(default="", max_length=255)
+    medicare_wages_tips: str = Field(default="", max_length=255)
+    medicare_tax_withheld: str = Field(default="", max_length=255)
+    social_security_tips: str = Field(default="", max_length=255)
+    allocated_tips: str = Field(default="", max_length=255)
+    dependent_care_benefits: str = Field(default="", max_length=255)
+    nonqualified_plans: str = Field(default="", max_length=255)
+    box_12a: str = Field(default="", max_length=255)
+    box_12b: str = Field(default="", max_length=255)
+    box_12c: str = Field(default="", max_length=255)
+    box_12d: str = Field(default="", max_length=255)
+    other: str = Field(default="", max_length=255)
+    state_employer_state_id: str = Field(default="", max_length=255)
+    state_wages_tips: str = Field(default="", max_length=255)
+    state_income_tax: str = Field(default="", max_length=255)
+    local_wages_tips: str = Field(default="", max_length=255)
+    local_income_tax: str = Field(default="", max_length=255)
+    locality_name: str = Field(default="", max_length=255)
