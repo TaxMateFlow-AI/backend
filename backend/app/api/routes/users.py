@@ -70,15 +70,6 @@ def create_user(*, session: SessionDep, user_in: UserCreate) -> Any:
         )
 
     user = crud.create_user(session=session, user_create=user_in)
-    if settings.emails_enabled and user_in.email:
-        email_data = generate_new_account_email(
-            email_to=user_in.email, username=user_in.email, password=user_in.password
-        )
-        send_email(
-            email_to=user_in.email,
-            subject=email_data.subject,
-            html_content=email_data.html_content,
-        )
     return user
 
 
@@ -170,6 +161,17 @@ def register_user(session: SessionDep, user_in: UserRegister) -> Any:
     )
 
     print("------>", f"{settings.EMAIL_VERIFICATION_REDIRECT_URL}/{result_token.access_token}")
+
+    verification_link = f"{settings.EMAIL_VERIFICATION_REDIRECT_URL}/{result_token.access_token}"
+
+    email_data = generate_new_account_email(username=user_in.full_name, link=verification_link)
+
+    send_email(
+        email_to=user_in.email,
+        subject=email_data.subject,
+        html_content=email_data.html_content,
+    )
+
     return user
 
 @router.get("/verify-email/{token}", response_model=Message)
@@ -216,11 +218,6 @@ def read_user_by_id(
     user = session.get(User, user_id)
     if user == current_user:
         return user
-    if not current_user.is_superuser:
-        raise HTTPException(
-            status_code=403,
-            detail="The user doesn't have enough privileges",
-        )
     return user
 
 
