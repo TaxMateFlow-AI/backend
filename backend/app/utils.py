@@ -33,7 +33,7 @@ class EmailData:
 def render_email_template(*, template_name: str, context: dict[str, Any]) -> str:
     template_str = (
         Path(__file__).parent / "email-templates" / "build" / template_name
-    ).read_text()
+    ).read_text(encoding="utf-8")
     html_content = Template(template_str).render(context)
     return html_content
 
@@ -51,7 +51,7 @@ def send_email(
             "from": FROM_EMAIL_ADDRESS,
             "to": email_to,
             "subject": subject,
-            "text": html_content
+            "html": html_content
         })
         if resp.status_code == 200:
             logger.info(f"send email result: {resp.json()}")
@@ -66,7 +66,7 @@ def generate_test_email(email_to: str) -> EmailData:
     project_name = settings.PROJECT_NAME
     subject = f"{project_name} - Test email"
     html_content = render_email_template(
-        template_name="template_signup.html",
+        template_name="test_email.html",
         context={"username": "James", "link": "google.com"},
     )
     return EmailData(html_content=html_content, subject=subject)

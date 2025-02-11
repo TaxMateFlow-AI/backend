@@ -1,18 +1,14 @@
 <mjml>
   <mj-head>
-    <mj-preview>Reset Your Password - TaxMate</mj-preview>
+    <mj-preview>TaxMate - Your Verification Code</mj-preview>
     <mj-style>
-      .action-button {
-        background-color: #0066FF;
-        border-radius: 8px;
-        color: #ffffff;
-        font-size: 16px;
-        font-weight: 600;
-        padding: 16px 32px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        display: inline-block;
-        text-decoration: none;
+      .verification-code {
+        font-family: monospace;
+        font-size: 32px;
+        font-weight: bold;
+        letter-spacing: 4px;
+        color: #0066FF;
+        margin: 0;
       }
       .feature-icons img {
         width: 60px;
@@ -36,30 +32,29 @@
     <mj-section background-color="#ffffff" padding="32px" border-radius="16px" align="center">
       <mj-column>
         <!-- Security Icon -->
-        <mj-image src="https://images.unsplash.com/photo-1554224154-22dec7ec8818?w=200&h=200&fit=crop&crop=entropy" alt="Security Icon" border-radius="12px" width="200px" />
+        <mj-image src="https://images.unsplash.com/photo-1554224154-26032ffc0d07?w=200&h=200&fit=crop&crop=entropy" alt="Security" border-radius="12px" width="200px" />
 
         <!-- Title -->
         <mj-text align="center" font-size="24px" color="#333333" font-weight="bold" padding="16px 0">
-          Reset Your Password 🔒
+          Your Verification Code 🔐
         </mj-text>
 
         <!-- Message -->
         <mj-text align="center" font-size="16px" line-height="1.6" color="#555">
-          We received a request to reset your TaxMate account password. Don't worry, we're here to help you regain access to your account safely and securely.
+          Here's your verification code to complete your secure access:
         </mj-text>
 
-        <!-- Reset Password Button -->
-        <mj-button background-color="#0066FF" color="#ffffff" font-size="16px" font-weight="600" padding="16px 32px" border-radius="8px" href="{{ link }}" text-transform="uppercase" letter-spacing="1px">
-          Reset Password
-        </mj-button>
+        <!-- Verification Code -->
+        <mj-text align="center" background-color="#f8f9fa" border-radius="12px" padding="24px" css-class="verification-code">
+          {{ verification_code }}
+        </mj-text>
 
         <!-- Expiry Note -->
         <mj-text align="center" font-size="16px" line-height="1.6" color="#555" padding="16px 0">
-          This password reset link will expire in 30 minutes for your security.
+          This code will expire in 10 minutes for your security.
         </mj-text>
 
         <!-- Feature Icons -->
-        <mj-text align="center" font-size="16px" color="#555" padding="16px 0">Our Features:</mj-text>
         <mj-group css-class="feature-icons">
           <mj-column>
             <mj-image src="https://images.unsplash.com/photo-1554224155-1696413565d3?w=100&h=100&fit=crop&crop=entropy" alt="Easy Filing" />
@@ -74,12 +69,12 @@
 
         <!-- Security Note -->
         <mj-text align="center" font-size="14px" line-height="1.6" color="#888" padding="16px" background-color="#f8f9fa" border-radius="8px">
-          🛡️ If you didn't request a password reset, please ignore this email or contact our support team immediately. Your account security is our top priority.
+          🛡️ Never share this verification code with anyone. The TaxMate team will never ask for your verification code.
         </mj-text>
 
-        <!-- Support Link -->
+        <!-- Help Link -->
         <mj-text align="center" font-size="16px" line-height="1.6" color="#555">
-          Need assistance? Visit <a href="https://taxmate.com" style="color: #0066FF; text-decoration: none;">TaxMate.com</a> for support.
+          Need help? Visit <a href="https://taxmate.com" style="color: #0066FF; text-decoration: none;">TaxMate.com</a> for support.
         </mj-text>
 
         <!-- Closing Message -->
