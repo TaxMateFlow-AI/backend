@@ -2,7 +2,7 @@ import uuid
 
 from pydantic import EmailStr
 from sqlmodel import Field, Relationship, SQLModel
-
+from pydantic import BaseModel
 
 # Shared properties
 class UserBase(SQLModel):
@@ -153,3 +153,6 @@ class W2FormModel(SQLModel):
     local_wages_tips: str = Field(default="", max_length=255)
     local_income_tax: str = Field(default="", max_length=255)
     locality_name: str = Field(default="", max_length=255)
+
+class TaxDocumentResponse(BaseModel):
+    message: str

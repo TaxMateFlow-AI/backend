@@ -16,7 +16,7 @@ from app.api.deps import get_current_active_superuser
 
 from app.models import (
     Message,
-    W2FormModel
+    W2FormModel, TaxDocumentResponse
 )
 from app.utils import generate_test_email, send_email
 
@@ -190,6 +190,31 @@ def test_email(email_to: EmailStr) -> Message:
     )
     return Message(message="Test email sent")
 
+
+@router.post("/generate-response/",
+             response_model=TaxDocumentResponse)
+async def generate_response(message: str) -> dict:
+    """
+    Endpoint to generate a response from a given input message using LangChain LLM.
+    """
+    prompt = "You are making a tax document assistant."
+    response = openai.chat.completions.create(
+        model=OPENAI_MODEL_NAME,
+        messages=[
+            {
+                "role": "system",
+                "content": prompt
+            },
+            {
+                "role": "user",
+                "content": message
+            }
+        ],
+        max_tokens=1000,
+        timeout=200  # Increase timeout to 20 seconds
+    ).choices[0].message.content.strip()
+    print("Response: ", response)
+    return TaxDocumentResponse(message=response)
 
 
 @router.get("/health-check/")
