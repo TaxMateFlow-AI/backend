@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, FastAPI, File, UploadFile
+from dotenv import load_dotenv
 import shutil
 import openai
 import os
@@ -19,22 +20,18 @@ from app.models import (
 )
 from app.utils import generate_test_email, send_email
 
+load_dotenv();
+
 router = APIRouter(prefix="/utils", tags=["utils"])
 
 # Read dotenv
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "public")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL_NAME = os.getenv("OPENAI_MODEL_NAME", "gpt-4o")
-# UPLOAD_DIR = "public"
-# OPENAI_API_KEY = "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"
-# OPENAI_MODEL_NAME = "gpt-4o"
 
 Path(UPLOAD_DIR).mkdir(parents=True, exist_ok=True)
 
-
 openai.api_key = OPENAI_API_KEY
-
-print(UPLOAD_DIR, OPENAI_API_KEY, OPENAI_MODEL_NAME)
 
 
 @router.post("/upload/", response_model=W2FormModel)
@@ -99,7 +96,7 @@ async def upload_file(file: UploadFile = File(...)):
             13: statutory employee(checkbox), Retirement plan(checkbox), Third-party sick pay(checkbox)
             14: Other
             15: State and Employer's state ID Number
-            16: State wages, tips, etc//
+            16: State wages, tips, etc
             17: State income tax
             18: Local wages, tips, etc..
             19: Local income tax
@@ -192,6 +189,7 @@ def test_email(email_to: EmailStr) -> Message:
         html_content=email_data.html_content,
     )
     return Message(message="Test email sent")
+
 
 
 @router.get("/health-check/")
