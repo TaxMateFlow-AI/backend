@@ -107,7 +107,7 @@ def generate_login_email(code: str) -> EmailData:
     verification_code = code
     subject = "Verification - Code for TaxMate"
     html_content = render_email_template(
-        template_name="signin.html",
+        template_name="template_signin.html",
         context={
             "verification_code": verification_code
         },

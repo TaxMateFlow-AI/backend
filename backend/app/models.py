@@ -156,3 +156,10 @@ class W2FormModel(SQLModel):
 
 class TaxDocumentResponse(BaseModel):
     message: str
+
+class ChatRequest(BaseModel):
+    message: str
+
+class VerifyCodeRequest(BaseModel):
+    email: str
+    verification_code: str
