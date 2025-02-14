@@ -1,4 +1,14 @@
 import uuid
+from typing import Any, Coroutine
+
+from langchain.chains.question_answering.map_rerank_prompt import output_parser
+from langchain_community.chat_models import ChatOpenAI
+from langchain_core.output_parsers import JsonOutputKeyToolsParser
+from langchain.callbacks import StreamingStdOutCallbackHandler
+from langchain_openai import OpenAI
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_ollama.llms import OllamaLLM
+
 import openai
 import os
 import requests
@@ -7,7 +17,10 @@ import urllib.request
 
 from dotenv import load_dotenv
 from fastapi import APIRouter
+from sqlalchemy import false
 from sqlmodel import func, select
+
+from langchain_openai import ChatOpenAI
 
 from app.models import TaxDocumentResponse, ChatRequest
 
@@ -19,14 +32,23 @@ load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL_NAME = os.getenv("OPENAI_MODEL_NAME", "gpt-4o-mini")
 
+openai_llm = ChatOpenAI(
+    model=OPENAI_MODEL_NAME,
+    temperature=0,
+    max_tokens=None,
+    timeout=None,
+    max_retries=2,
+    api_key=OPENAI_API_KEY,
+)
 
 @router.post("/chat_with_openai", response_model=TaxDocumentResponse)
-async def chat_with_openai(request: ChatRequest) -> dict:
+async def chat_with_openai(request: ChatRequest) -> TaxDocumentResponse:
     """
     Endpoint to generate a response using OpenAI gpt-4o model
     """
-    message = request.message
-    prompt = """
+    user_input = request.message
+
+    system_prompt = """
         You are making Tax document Assistant for 1040 Form in US
         
         I'm trying to auto filling into 1040 Form from provided data.
@@ -65,120 +87,54 @@ async def chat_with_openai(request: ChatRequest) -> dict:
           #############
         And these are fields we should fill automatically from Form 1040
           #############
-            Primary Info
-              - For the year Jan. 1–Dec. 31, 2024, or other tax year beginning
-              - 2024, ending
-              - Your first name and middle initial
-              - Last name
-              - If joint return, spouse’s first name and middle initial
-              - Last name,
-              - Home address (number and street). If you have a P.O. box, see instructions.
-              - City, town, or post office. If you have a foreign address, also complete spaces below. 
-              - State
-              - Zip Code
-              - Foreign country name
-              - Foreign province/state/country
-              - Foreign postal code
-            Digital Assets: 
-              - At any time during 2024, did you: (a) receive (as a reward, award, or payment for property or services); or (b) sell, exchange, or otherwise dispose of a digital asset (or a financial interest in a digital asset)? (See instructions.) 
-            Standard Deduction:
-              - Someone 
-            Dependents: If more than four dependents,see instructions and check here. 
-                > First and Last name, > SSN, > Relationship to you, > child tax credit, > credit for other dependents
-        
-            Income: Attach Form(s) W-2 here. Also attach Forms W-2G and 1099-R if tax was withheld. If you did not get a Form W-2, see instructions  
-              - 1a: Total amount from Form(s) W-2, box 1 (see instructions) 
-              - b: Household employee wages not reported on Form(s) W-2
-              - c: Tip income not reported on line 1a (see instructions)
-              - d: Medicaid waiver payments not reported on Form(s) W-2 (see instructions)
-              - e: Taxable dependent care benefits from Form 2441, line 26
-              - f: Employer-provided adoption benefits from Form 8839, line 29
-              - g: Wages from Form 8919, line 6
-              - h: Other earned income (see instructions)
-              - i: Nontaxable combat pay election (see instructions)
-              - z: Add lines 1a through 1h
-              - 2a: Tax-exempt interest.  2b: Taxable interest
-              - 3a: Qualified dividends.  3b: Ordinary dividents
-              - 4a: IRA distributions.    4b: Taxable amount
-              - 5a: Pensions and annuities. 5b: Taxable amount
-              - 6a: Social security benefits. 6b: Taxable amount
-              - c: If you elect to use the lump-sum election method, check here (see instructions)
-              - 7: Capital gain or (loss). Attach Schedule D if required. If not required, check here
-              - 8: Additional income from Schedule 1, line 10
-              - 9: Add lines 1z, 2b, 3b, 4b, 5b, 6b, 7, and 8. This is your total income
-              - 10: Adjustments to income from Schedule 1, line 26 
-              - 11: Subtract line 10 from line 9. This is your adjusted gross income
-              - 12: Standard deduction or itemized deductions (from Schedule A) 
-              - 13 Qualified business income deduction from Form 8995 or Form 8995-A
-              - 14 Add lines 12 and 13
-              - 15 Subtract line 14 from line 11. If zero or less, enter -0-. This is your taxable income
-            Tax and Credits  
-              - 16 Tax (see instructions). Check if any from Form(s):
-              - 17 Amount from Schedule 2, line 3
-              - 18 Add lines 16 and 17
-              - 19 Child tax credit or credit for other dependents from Schedule 8812
-              - 20 Amount from Schedule 3, line 8
-              - 21 Add lines 19 and 20
-              - 22 Subtract line 21 from line 18. If zero or less, enter -0-
-              - 23 Other taxes, including self-employment tax, from Schedule 2, line 21 
-              - 24 Add lines 22 and 23. This is your total tax
-            Payments
-              - 25 Federal income tax withheld from:
-                a: Forms W-2 
-                b: Forms 1099
-                c: Other forms (see instructions)
-                d: Add lines 25a through 25c
-              - 26 2024 estimated tax payments and amount applied from 2023 return
-              - 27 Earned income credit (EIC)
-              - 28 Additional child tax credit from Schedule 8812
-              - 29 American opportunity credit from Form 8863, line 8
-              - 30 Reserved for future use
-              - 31 Amount from Schedule 3, line 15
-              - 32 Add lines 27, 28, 29, and 31. These are your total other payments and refundable credits
-              - 33 Add lines 25d, 26, and 32. These are your total payments 
-            Refund   
-              - 34 If line 33 is more than line 24, subtract line 24 from line 33. This is the amount you overpaid 
-              - 35
-                > a Amount of line 34 you want refunded to you. If Form 8888 is attached, check here
-                > b Routing number 
-                > c Type (checking, savings)
-                > d Account number
-              - 36 Amount of line 34 you want applied to your 2025 estimated tax
-            Amount You Owe
-              - 37 Subtract line 33 from line 24. This is the amount you owe. For details on how to pay, go to www.irs.gov/Payments or see instructions
-              - 38 Estimated tax penalty (see instructions)
-            Third Party Designee
-              - Do you want to allow another person to discuss this return with the IRS? See instructions  (Yes. Complete bellow,  No)
-                > Designee's name
-                > Phone no 
-                > Personal identification number(PIN)
+            {
+              "filing_status": "",  // Single, Married filing jointly, etc.
+              "spouse_social_security_number": "",  // If filing jointly
+              "spouse_first_name": "",  // If applicable
+              "spouse_last_name": "",  // If applicable
+              "digital_assets": {
+                "did_receive_or_dispose": false  // Digital asset transactions (Yes/No)
+              },
+              "adjusted_gross_income": "",  // Total income minus adjustments
+              "standard_deduction_or_itemized_deductions": "",  // Standard or itemized
+              "taxable_income": "",  // Final taxable income
+              "child_tax_credit": "",  // Credit for children
+              "other_credits": "",  // Additional credits
+              "total_tax": "",  // Total tax amount
+              "earned_income_credit": "",  // Earned income tax credit
+            }
           #############
         
         - Everytime you should ask to user using question, questions are related for getting undefiend information in 1040 form
         - Do not answer for user's questions very kindly and keep going to make conversation. so that you should get information from user.
         - If you don't need to answer anymore, then say to user what almost complete. and say thank you for your cooperation etc..
         - Do not make too long response, it's more better 1 ~ 2 sentences. 
-        - if you want to display some options, then display option. like this 📑 option1 📑 option2 
+        - if you want to display some options, then display option. like this 📑 option1 📑 option2 etc..
     """
 
-    response = openai.chat.completions.create(
-        model=OPENAI_MODEL_NAME,
-        messages=[
-            {
-                "role": "system",
-                "content": prompt
-            },
-            {
-                "role": "user",
-                "content": message
-            }
-        ],
-        max_tokens=1000,
-        timeout=200
-    ).choices[0].message.content.strip()
+    def generate_openai_response(user_message: str) -> str:
+        messages = [
+            (
+                "system",
+                system_prompt
+            ),
+            (
+                "user",
+                user_input
+            ),
+        ]
+        return openai_llm.invoke(messages).content
 
-    return TaxDocumentResponse(message=response)
+    if request.isFirst:
+        validation_result = validation_user_input(user_input)
+        if validation_result["type"] == "yes":
+            return TaxDocumentResponse(message=generate_openai_response(user_input))
+        else:
+            return TaxDocumentResponse(message=validation_result["message"])
 
+    ai_msg = generate_openai_response(user_input)
+    print("AI result: ", ai_msg)
+    return TaxDocumentResponse(message=ai_msg)
 
 @router.post("/chat_with_llama", response_model=TaxDocumentResponse)
 async def chat_with_llama(request: ChatRequest) -> dict:
@@ -213,3 +169,71 @@ async def chat_with_llama(request: ChatRequest) -> dict:
             "status_code": e.code,
             "details": error_message,
         }
+
+def validation_user_input(input: str) -> dict:
+    """
+    Function that Validate for user's input
+    """
+
+    user_input = input
+    system_prompt = """
+        Analyze the last question of the chatbot and the user's answer to check.
+        If the answer is in the correct format, then the return type is Yes, the key is the field name, and the value is the user's input value. In here we need to get only the value from the user input.
+        If user input sentence, but you should get only value from it. 
+        If the input values are almost similar, the return type is yes. That is, recognize it as yes most of the time. 
+        Do not recognize uppercase and lowercase letters differently.
+        
+        For example, the user can input only the value or input in sentence format, but we can output only the value of the user input in JSON format.
+
+        If the user input is irrelevant, incorrectly formatted, or not the requested field value, the type is No and the key is Message. please include example type of input and these input value is related 1040 Form for US tax document. just make message by yourself .
+                
+        Confirm again, if the type is correct,
+        {
+         "type": "yes",
+         "field_name": "value" (value is user's input)
+        }
+        if type is incorrect
+        {
+          "type": "no",
+          "message": "message response."
+        }
+        #######################
+        These are valid field names when type is yes
+        {
+          "filing_status": "",  // Single, Married filing jointly, etc.
+          "spouse_social_security_number": "",  // If filing jointly
+          "spouse_first_name": "",  // If applicable
+          "spouse_last_name": "",  // If applicable
+          "digital_assets": {
+            "did_receive_or_dispose": false  // Digital asset transactions (Yes/No)
+          },
+          "adjusted_gross_income": "",  // Total income minus adjustments
+          "standard_deduction_or_itemized_deductions": "",  // Standard or itemized
+          "taxable_income": "",  // Final taxable income
+          "child_tax_credit": "",  // Credit for children
+          "other_credits": "",  // Additional credits
+          "total_tax": "",  // Total tax amount
+          "earned_income_credit": "",  // Earned income tax credit
+        }
+        ######################
+    """
+
+    messages = [
+        (
+            "system",
+            system_prompt
+        ),
+        (
+            "user",
+            user_input
+        ),
+    ]
+
+    ai_msg = openai_llm.invoke(messages)
+    print("AI result: ", ai_msg)
+
+    response_content = ai_msg.content.strip('```').strip().strip('json').strip()  # Remove surrounding triple quotes, curly braces, "json" tag, and whitespace
+    result_json = json.loads(response_content)
+    print("Result json: ", result_json)
+
+    return result_json
