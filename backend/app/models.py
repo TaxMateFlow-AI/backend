@@ -159,6 +159,7 @@ class TaxDocumentResponse(BaseModel):
 
 class ChatRequest(BaseModel):
     message: str
+    isFirst: bool
 
 class VerifyCodeRequest(BaseModel):
     email: str
