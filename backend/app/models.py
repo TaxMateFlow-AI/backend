@@ -156,6 +156,8 @@ class W2FormModel(SQLModel):
 
 class TaxDocumentResponse(BaseModel):
     message: str
+    keyword: str
+    value: str
 
 class ChatRequest(BaseModel):
     message: str

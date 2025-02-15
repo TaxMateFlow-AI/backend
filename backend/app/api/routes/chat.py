@@ -88,20 +88,40 @@ async def chat_with_openai(request: ChatRequest) -> TaxDocumentResponse:
         And these are fields we should fill automatically from Form 1040
           #############
             {
-              "filing_status": "",  // Single, Married filing jointly, etc.
-              "spouse_social_security_number": "",  // If filing jointly
-              "spouse_first_name": "",  // If applicable
-              "spouse_last_name": "",  // If applicable
-              "digital_assets": {
-                "did_receive_or_dispose": false  // Digital asset transactions (Yes/No)
-              },
-              "adjusted_gross_income": "",  // Total income minus adjustments
-              "standard_deduction_or_itemized_deductions": "",  // Standard or itemized
-              "taxable_income": "",  // Final taxable income
-              "child_tax_credit": "",  // Credit for children
-              "other_credits": "",  // Additional credits
-              "total_tax": "",  // Total tax amount
-              "earned_income_credit": "",  // Earned income tax credit
+              "filingStatus": "",  // Single, Married filing jointly, etc.
+              "spouseSsn": "",  // If filing jointly
+              "spouseFirstName": "",  // If applicable
+              "spouseLastName": "",  // If applicable
+              "didReceiveOrDispose": "",  // Digital asset transactions (Yes/No)
+              "adjustedGrossIncome": "",  // Total income minus adjustments
+              "standardDeduction": "",  // Standard or itemized
+              "taxableIncome": "",  // Final taxable income
+              "childTaxCredit": "",  // Credit for children
+              "otherCredits": "",  // Additional credits
+              "totalTax": "",  // Total tax amount
+              "earnedIncomeCredit": "",  // Earned income tax credit
+              "foreign_country_name": "",  // Name of the foreign country (if applicable)
+              "foreign_province_state_county": "",  // Province, state, or county of foreign address
+              "foreign_postal_code": "",  // Postal code of foreign address
+              "dependent_ssn": "",  // Social Security Number of dependent
+              "dependent_relationship": "",  // Relationship of dependent to taxpayer
+              "household_employee_wages": "",  // Wages paid to household employees
+              "tip_income_not_reported": "",  // Tip income not reported to employer
+              "medicaid_waiver_payments": "",  // Medicaid waiver payments received
+              "taxable_dependent_care_benefits": "",  // Taxable portion of dependent care benefits
+              "employer_provided_adoption_benefits": "",  // Employer-provided adoption benefits
+              "wages_from_form_8919": "",  // Wages reported on Form 8919
+              "other_earned_income": "",  // Other earned income not included elsewhere
+              "nontaxable_combat_pay": "",  // Nontaxable combat pay received
+              "total_income_line_1z": "",  // Total income from line 1z
+              "tax_exempt_interest": "",  // Interest income that is tax-exempt
+              "taxable_interest": "",  // Interest income that is taxable
+              "qualified_dividends": "",  // Dividends that qualify for special tax rates
+              "ordinary_dividends": "",  // Total ordinary dividends received
+              "ira_distributions": "",  // Total IRA distributions received
+              "taxable_ira_distributions": "",  // Taxable portion of IRA distributions
+              "pensions_and_annuities": "",  // Total pensions and annuities received
+              "taxable_pensions_and_annuities": ""  // Taxable portion of pensions and annuities
             }
           #############
         
@@ -110,6 +130,7 @@ async def chat_with_openai(request: ChatRequest) -> TaxDocumentResponse:
         - If you don't need to answer anymore, then say to user what almost complete. and say thank you for your cooperation etc..
         - Do not make too long response, it's more better 1 ~ 2 sentences. 
         - if you want to display some options, then display option. like this 📑 option1 📑 option2 etc..
+        - Do not repeat questions
     """
 
     def generate_openai_response(user_message: str) -> str:
@@ -127,14 +148,17 @@ async def chat_with_openai(request: ChatRequest) -> TaxDocumentResponse:
 
     if request.isFirst:
         validation_result = validation_user_input(user_input)
+
         if validation_result["type"] == "yes":
-            return TaxDocumentResponse(message=generate_openai_response(user_input))
+            for key, value in validation_result.items():
+                if key != "type":
+                    return TaxDocumentResponse(message=generate_openai_response(user_input),keyword=key, value=value)
         else:
-            return TaxDocumentResponse(message=validation_result["message"])
+            return TaxDocumentResponse(message=validation_result["message"], keyword="", value="")
 
     ai_msg = generate_openai_response(user_input)
     print("AI result: ", ai_msg)
-    return TaxDocumentResponse(message=ai_msg)
+    return TaxDocumentResponse(message=ai_msg, keyword="", value="")
 
 @router.post("/chat_with_llama", response_model=TaxDocumentResponse)
 async def chat_with_llama(request: ChatRequest) -> dict:
@@ -177,7 +201,7 @@ def validation_user_input(input: str) -> dict:
 
     user_input = input
     system_prompt = """
-        Analyze the last question of the chatbot and the user's answer to check.
+        Analyze the last question of the chatbot and the user's last answer to check.
         If the answer is in the correct format, then the return type is Yes, the key is the field name, and the value is the user's input value. In here we need to get only the value from the user input.
         If user input sentence, but you should get only value from it. 
         If the input values are almost similar, the return type is yes. That is, recognize it as yes most of the time. 
@@ -200,20 +224,40 @@ def validation_user_input(input: str) -> dict:
         #######################
         These are valid field names when type is yes
         {
-          "filing_status": "",  // Single, Married filing jointly, etc.
-          "spouse_social_security_number": "",  // If filing jointly
-          "spouse_first_name": "",  // If applicable
-          "spouse_last_name": "",  // If applicable
-          "digital_assets": {
-            "did_receive_or_dispose": false  // Digital asset transactions (Yes/No)
-          },
-          "adjusted_gross_income": "",  // Total income minus adjustments
-          "standard_deduction_or_itemized_deductions": "",  // Standard or itemized
-          "taxable_income": "",  // Final taxable income
-          "child_tax_credit": "",  // Credit for children
-          "other_credits": "",  // Additional credits
-          "total_tax": "",  // Total tax amount
-          "earned_income_credit": "",  // Earned income tax credit
+            "filingStatus": "",  // Single, Married filing jointly, etc.
+            "spouseSsn": "",  // If filing jointly
+            "spouseFirstName": "",  // If applicable
+            "spouseLastName": "",  // If applicable
+            "didReceiveOrDispose": "",  // Digital asset transactions (Yes/No)
+            "adjustedGrossIncome": "",  // Total income minus adjustments
+            "standardDeduction": "",  // Standard or itemized
+            "taxableIncome": "",  // Final taxable income
+            "childTaxCredit": "",  // Credit for children
+            "otherCredits": "",  // Additional credits
+            "totalTax": "",  // Total tax amount
+            "earnedIncomeCredit": "",  // Earned income tax credit
+            "foreign_country_name": "",  // Name of the foreign country (if applicable)
+            "foreign_province_state_county": "",  // Province, state, or county of foreign address
+            "foreign_postal_code": "",  // Postal code of foreign address
+            "dependent_ssn": "",  // Social Security Number of dependent
+            "dependent_relationship": "",  // Relationship of dependent to taxpayer
+            "household_employee_wages": "",  // Wages paid to household employees
+            "tip_income_not_reported": "",  // Tip income not reported to employer
+            "medicaid_waiver_payments": "",  // Medicaid waiver payments received
+            "taxable_dependent_care_benefits": "",  // Taxable portion of dependent care benefits
+            "employer_provided_adoption_benefits": "",  // Employer-provided adoption benefits
+            "wages_from_form_8919": "",  // Wages reported on Form 8919
+            "other_earned_income": "",  // Other earned income not included elsewhere
+            "nontaxable_combat_pay": "",  // Nontaxable combat pay received
+            "total_income_line_1z": "",  // Total income from line 1z
+            "tax_exempt_interest": "",  // Interest income that is tax-exempt
+            "taxable_interest": "",  // Interest income that is taxable
+            "qualified_dividends": "",  // Dividends that qualify for special tax rates
+            "ordinary_dividends": "",  // Total ordinary dividends received
+            "ira_distributions": "",  // Total IRA distributions received
+            "taxable_ira_distributions": "",  // Taxable portion of IRA distributions
+            "pensions_and_annuities": "",  // Total pensions and annuities received
+            "taxable_pensions_and_annuities": ""  // Taxable portion of pensions and annuities
         }
         ######################
     """
