@@ -127,6 +127,8 @@ def send_verification_code(
     # Save the verification code and expiration time in memory
     verification_codes[user.email] = {"code": verification_code, "expires_at": expiration_time}
 
+    print("------>", f"{verification_code}")
+
     # Send the verification code via email
     email_data = generate_login_email(code=verification_code)
 
