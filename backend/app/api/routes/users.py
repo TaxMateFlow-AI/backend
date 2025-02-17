@@ -1,5 +1,13 @@
 import uuid
 from typing import Any
+from datetime import timedelta
+
+import jwt
+import os
+from starlette.responses import RedirectResponse
+
+from dotenv import load_dotenv
+from app.core import security
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import col, delete, func, select
@@ -10,11 +18,12 @@ from app.api.deps import (
     SessionDep,
     get_current_active_superuser,
 )
-from app.core.config import settings
+from app.core.config import settings, FRONTEND_URL
 from app.core.security import get_password_hash, verify_password
 from app.models import (
     Item,
     Message,
+    Token,
     UpdatePassword,
     User,
     UserCreate,
@@ -28,6 +37,9 @@ from app.utils import generate_new_account_email, send_email
 
 router = APIRouter(prefix="/users", tags=["users"])
 
+load_dotenv()
+
+FRONTEND_URL = os.getenv("FRONTEND_URL", "")
 
 @router.get(
     "/",
@@ -63,19 +75,10 @@ def create_user(*, session: SessionDep, user_in: UserCreate) -> Any:
         )
 
     user = crud.create_user(session=session, user_create=user_in)
-    if settings.emails_enabled and user_in.email:
-        email_data = generate_new_account_email(
-            email_to=user_in.email, username=user_in.email, password=user_in.password
-        )
-        send_email(
-            email_to=user_in.email,
-            subject=email_data.subject,
-            html_content=email_data.html_content,
-        )
     return user
 
 
-@router.patch("/me", response_model=UserPublic)
+@router.post("/me", response_model=UserPublic)
 def update_user_me(
     *, session: SessionDep, user_in: UserUpdateMe, current_user: CurrentUser
 ) -> Any:
@@ -150,11 +153,66 @@ def register_user(session: SessionDep, user_in: UserRegister) -> Any:
     if user:
         raise HTTPException(
             status_code=400,
-            detail="The user with this email already exists in the system",
+            detail="You are already registered. Please log in or reset your password.",
         )
     user_create = UserCreate.model_validate(user_in)
     user = crud.create_user(session=session, user_create=user_create)
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+
+    result_token = Token(
+        access_token=security.create_access_token(
+            user.id, expires_delta=access_token_expires
+        )
+    )
+
+    print("------>", f"{settings.EMAIL_VERIFICATION_REDIRECT_URL}/{result_token.access_token}")
+
+    verification_link = f"{settings.EMAIL_VERIFICATION_REDIRECT_URL}/{result_token.access_token}"
+
+    print("------>", f"{verification_link}")
+
+    email_data = generate_new_account_email(username=user_in.full_name, link=verification_link)
+
+    send_email(
+        email_to=user_in.email,
+        subject=email_data.subject,
+        html_content=email_data.html_content,
+    )
+
     return user
+
+@router.get("/verify-email/{token}", response_model=Message)
+def verify_email(token: str, session: SessionDep) -> Any:
+    """
+    Verify email from the provided link and redirect.
+    """
+    try:
+        # Decode the token to retrieve user ID
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[security.ALGORITHM])
+        user_id = payload.get("sub")
+
+        if not user_id:
+            next_url = f"{FRONTEND_URL}signup"
+            return RedirectResponse(url=next_url)
+
+        user = session.get(User, user_id)
+
+        if not user:
+            next_url = f"{FRONTEND_URL}signup"
+            return RedirectResponse(url=next_url)
+
+        # Mark the email as verified
+        session.add(user)
+        session.commit()
+
+        # Redirect to the next link
+        next_url = f"{settings.EMAIL_VERIFICATION_REDIRECT_URL}"
+        return RedirectResponse(url=next_url)
+
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=400, detail="Token has expired")
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=400, detail="Invalid token")
 
 
 @router.get("/{user_id}", response_model=UserPublic)
@@ -167,11 +225,6 @@ def read_user_by_id(
     user = session.get(User, user_id)
     if user == current_user:
         return user
-    if not current_user.is_superuser:
-        raise HTTPException(
-            status_code=403,
-            detail="The user doesn't have enough privileges",
-        )
     return user
 
 
