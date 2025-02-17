@@ -18,6 +18,12 @@ class PrivateUserCreate(BaseModel):
     password: str
     full_name: str
     is_verified: bool = False
+    recipient_name: str
+    street: str
+    city: str
+    state: str
+    zipcode: str
+    ssn: str
 
 
 @router.post("/users/", response_model=UserPublic)
