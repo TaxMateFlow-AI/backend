@@ -1,6 +1,8 @@
 import secrets
 import warnings
+import os
 from typing import Annotated, Any, Literal
+from dotenv import load_dotenv
 
 from pydantic import (
     AnyUrl,
@@ -14,6 +16,9 @@ from pydantic_core import MultiHostUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing_extensions import Self
 
+load_dotenv()
+BACKEND_ENDPOINT = os.getenv("BACKEND_ENDPOINT", "")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "")
 
 def parse_cors(v: Any) -> list[str] | str:
     if isinstance(v, str) and not v.startswith("["):
@@ -34,12 +39,12 @@ class Settings(BaseSettings):
     SECRET_KEY: str = secrets.token_urlsafe(32)
     # 60 minutes * 24 hours * 8 days = 8 days
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
-    FRONTEND_HOST: str = "http://localhost:5173/"
+    FRONTEND_HOST: str = f"{FRONTEND_URL}"
     ENVIRONMENT: Literal["local", "staging", "production"] = "local"
 
-    SERVER_URL: str = "http://localhost:8000/api/v1/users"
+    SERVER_URL: str = f"{BACKEND_ENDPOINT}api/v1/users"
 
-    EMAIL_VERIFICATION_REDIRECT_URL: str = "http://localhost:5173/completeProfile"
+    EMAIL_VERIFICATION_REDIRECT_URL: str = f"{FRONTEND_URL}completeProfile"
 
     BACKEND_CORS_ORIGINS: Annotated[
         list[AnyUrl] | str, BeforeValidator(parse_cors)
