@@ -164,6 +164,8 @@ def register_user(session: SessionDep, user_in: UserRegister) -> Any:
 
     verification_link = f"{settings.EMAIL_VERIFICATION_REDIRECT_URL}/{result_token.access_token}"
 
+    print("------>", f"{verification_link}")
+
     email_data = generate_new_account_email(username=user_in.full_name, link=verification_link)
 
     send_email(
