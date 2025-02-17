@@ -3,8 +3,10 @@ from typing import Any
 from datetime import timedelta
 
 import jwt
+import os
 from starlette.responses import RedirectResponse
 
+from dotenv import load_dotenv
 from app.core import security
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -16,7 +18,7 @@ from app.api.deps import (
     SessionDep,
     get_current_active_superuser,
 )
-from app.core.config import settings
+from app.core.config import settings, FRONTEND_URL
 from app.core.security import get_password_hash, verify_password
 from app.models import (
     Item,
@@ -35,6 +37,9 @@ from app.utils import generate_new_account_email, send_email
 
 router = APIRouter(prefix="/users", tags=["users"])
 
+load_dotenv()
+
+FRONTEND_URL = os.getenv("FRONTEND_URL", "")
 
 @router.get(
     "/",
@@ -187,13 +192,13 @@ def verify_email(token: str, session: SessionDep) -> Any:
         user_id = payload.get("sub")
 
         if not user_id:
-            next_url = "http://localhost:5173/signup"
+            next_url = f"{FRONTEND_URL}signup"
             return RedirectResponse(url=next_url)
 
         user = session.get(User, user_id)
 
         if not user:
-            next_url = "http://localhost:5173/signup"
+            next_url = f"{FRONTEND_URL}signup"
             return RedirectResponse(url=next_url)
 
         # Mark the email as verified
