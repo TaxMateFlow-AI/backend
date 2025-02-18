@@ -40,6 +40,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 load_dotenv()
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "")
+BACKEND_ENDPOINT = os.getenv("BACKEND_ENDPOINT", "")
 
 @router.get(
     "/",
@@ -164,10 +165,7 @@ def register_user(session: SessionDep, user_in: UserRegister) -> Any:
             user.id, expires_delta=access_token_expires
         )
     )
-
-    print("------>", f"{settings.EMAIL_VERIFICATION_REDIRECT_URL}/{result_token.access_token}")
-
-    verification_link = f"{settings.EMAIL_VERIFICATION_REDIRECT_URL}/{result_token.access_token}"
+    verification_link = f"{BACKEND_ENDPOINT}api/v1/users/verify-email/?token={result_token.access_token}"
 
     print("------>", f"{verification_link}")
 
@@ -181,7 +179,7 @@ def register_user(session: SessionDep, user_in: UserRegister) -> Any:
 
     return user
 
-@router.get("/verify-email/{token}", response_model=Message)
+@router.get("/verify-email/", response_model=None)
 def verify_email(token: str, session: SessionDep) -> Any:
     """
     Verify email from the provided link and redirect.

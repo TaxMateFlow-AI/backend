@@ -38,7 +38,7 @@ openai.api_key = OPENAI_API_KEY
 
 MAX_FILE_SIZE = 20 * 1024 * 1024
 
-@router.post("/upload/", response_model=W2FormModel)
+@router.post("/upload", response_model=W2FormModel)
 async def upload_file(file: UploadFile = File(...)):
     """
     Endpoint to upload a single file.
@@ -174,7 +174,7 @@ async def upload_file(file: UploadFile = File(...)):
     )
 
 
-@router.post("/upload-multiple/")
+@router.post("/upload-multiple")
 async def upload_multiple_files(files: list[UploadFile] = File(...)):
     """ =
     Endpoint to upload multiple files.
@@ -190,7 +190,7 @@ async def upload_multiple_files(files: list[UploadFile] = File(...)):
 
 
 @router.post(
-    "/test-email/",
+    "/test-email",
     dependencies=[Depends(get_current_active_superuser)],
     status_code=201,
 )
@@ -207,7 +207,7 @@ def test_email(email_to: EmailStr) -> Message:
     return Message(message="Test email sent")
 
 
-@router.post("/generate-response/",
+@router.post("/generate-response",
              response_model=TaxDocumentResponse)
 async def generate_response(message: str) -> dict:
     """
