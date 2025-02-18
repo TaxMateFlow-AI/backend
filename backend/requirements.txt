@@ -1,0 +1,17 @@
+pytesseract
+langchain_community
+emails
+psycopg
+pydantic_settings
+passlib
+PyJWT
+InvalidTokenError
+jwt
+sqlmodel
+openai
+sentry_sdk
+fastapi[standard]
+fastapi
+langchain_openai
+langchain_ollama
+pypdf
