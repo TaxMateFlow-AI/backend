@@ -1,9 +1,12 @@
+from http.client import HTTPException
+
 from fastapi import APIRouter, Depends, FastAPI, File, UploadFile
 from dotenv import load_dotenv
 import shutil
 import openai
 import os
 import json
+import aiofiles
 from pathlib import Path
 from pydantic.networks import EmailStr
 import mimetypes
@@ -33,15 +36,28 @@ Path(UPLOAD_DIR).mkdir(parents=True, exist_ok=True)
 
 openai.api_key = OPENAI_API_KEY
 
+MAX_FILE_SIZE = 20 * 1024 * 1024
 
 @router.post("/upload/", response_model=W2FormModel)
 async def upload_file(file: UploadFile = File(...)):
     """
     Endpoint to upload a single file.
     """
-    file_location = f"{UPLOAD_DIR}/{file.filename}"
-    with open(file_location, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    if not os.path.exists(UPLOAD_DIR):
+        os.makedirs(UPLOAD_DIR)
+    print("------> Incoming File...", file.filename)
+    contents = await file.read()
+    if len(contents) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail="File size exceeds the maximum limit.")
+    file.file.seek(0)
+    try:
+        file_location = f"{UPLOAD_DIR}/{file.filename}"
+        async with aiofiles.open(file_location, "wb") as buffer:
+            await buffer.write(await file.read())
+        print("------> Saving File into:", file_location)
+    except Exception as e:
+        print(f"Error saving file: {e}")
+        raise HTTPException(status_code=500, detail="File upload failed.")
 
     # Detect file type
     file_type, _ = mimetypes.guess_type(file_location)
@@ -73,7 +89,7 @@ async def upload_file(file: UploadFile = File(...)):
 
     prompt = """        
             Get structurable data from tax W-2 scanned data. this data is getting from ocr result and all of data is related about tax in US.
-            These are order of document value per field.
+            These are order of document value per field. This is scanned data : {data}
 
             A: Employee's Social Security Number
             B: Employer identification number
@@ -102,7 +118,7 @@ async def upload_file(file: UploadFile = File(...)):
             19: Local income tax
             20: Locality name
 
-            Based on this data, return the values ​​in the JSON structure. you can get value from scanned data.
+            Based on this data, return the values in the JSON structure. you can get value from scanned data.
             valid output: 
             {
              "field Name1": value1,
