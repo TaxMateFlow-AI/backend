@@ -14,6 +14,7 @@ import os
 import requests
 import json
 import urllib.request
+import ast
 
 from dotenv import load_dotenv
 from fastapi import APIRouter
@@ -129,7 +130,7 @@ async def chat_with_openai(request: ChatRequest) -> TaxDocumentResponse:
         - Do not answer for user's questions very kindly and keep going to make conversation. so that you should get information from user.
         - If you don't need to answer anymore, then say to user what almost complete. and say thank you for your cooperation etc..
         - Do not make too long response, it's more better 1 ~ 2 sentences. 
-        - if you want to display some options, then display option. like this 📑 option1 📑 option2 etc..
+        - if you want to display some options, then add options in the end of response like this format: ###STRINGLIST["option1", "option2", "option3"...]
         - Do not repeat questions
     """
 
@@ -152,13 +153,23 @@ async def chat_with_openai(request: ChatRequest) -> TaxDocumentResponse:
         if validation_result["type"] == "yes":
             for key, value in validation_result.items():
                 if key != "type":
-                    return TaxDocumentResponse(message=generate_openai_response(user_input),keyword=key, value=value)
-        else:
-            return TaxDocumentResponse(message=validation_result["message"], keyword="", value="")
+                    ai_response = generate_openai_response(user_input)
+                    message = get_text_from_response(ai_response)
+                    print("ai_response: ", message)
+                    options = get_string_list_from_response(ai_response)
+                    print("options: ", options)
 
-    ai_msg = generate_openai_response(user_input)
-    print("AI result: ", ai_msg)
-    return TaxDocumentResponse(message=ai_msg, keyword="", value="")
+                    return TaxDocumentResponse(message=message,keyword=key, value=value, options=options)
+        else:
+            return TaxDocumentResponse(message=validation_result["message"], keyword="", value="", list=[])
+
+    ai_response = generate_openai_response(user_input)
+    print("AI result: ", ai_response)
+    message = get_text_from_response(ai_response)
+    print("ai_response: ", message)
+    options = get_string_list_from_response(ai_response)
+    print("options: ", options)
+    return TaxDocumentResponse(message=message, keyword="", value="", options=options)
 
 @router.post("/chat_with_llama", response_model=TaxDocumentResponse)
 async def chat_with_llama(request: ChatRequest) -> dict:
@@ -281,3 +292,31 @@ def validation_user_input(input: str) -> dict:
     print("Result json: ", result_json)
 
     return result_json
+
+def get_text_from_response(ai_response: str) -> str:
+    if "###STRINGLIST" not in ai_response:
+        return ai_response
+    print("ai_response: ", ai_response)
+    print("detect: ", ai_response.split("###STRINGLIST")[0].strip())
+    return ai_response.split("###STRINGLIST")[0].strip()
+
+def get_string_list_from_response(ai_response: str) -> list:
+    # Check if "###STRINGLIST" is in the response
+    if "###STRINGLIST" not in ai_response:
+        return []  # Return an empty list if the keyword is not found
+
+    # Extract the part after "###STRINGLIST"
+    list_string = ai_response.split("###STRINGLIST", 1)[1].strip()
+
+    try:
+        # Safely evaluate the list string using ast.literal_eval
+        result_list = ast.literal_eval(list_string)
+
+        # Check if the result is a valid list
+        if not isinstance(result_list, list):
+            raise ValueError("Parsed value is not a list")
+
+        return result_list
+    except (ValueError, SyntaxError):
+        # Return an empty list if parsing fails
+        return []
