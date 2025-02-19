@@ -8,6 +8,8 @@ import os
 import json
 import aiofiles
 from pathlib import Path
+
+from google.cloud import vision
 from pydantic.networks import EmailStr
 import mimetypes
 from langchain_community.document_loaders import PyPDFLoader
@@ -85,38 +87,39 @@ async def upload_file(file: UploadFile = File(...)):
         text = pytesseract.image_to_string(image)
         pdf_parse_content = text
 
+
     print("PDF parse Result: ", pdf_parse_content)
 
     prompt = """        
             Get structurable data from tax W-2 scanned data. this data is getting from ocr result and all of data is related about tax in US.
             These are order of document value per field. This is scanned data : {data}
 
-            A: Employee's Social Security Number
-            B: Employer identification number
-            C: Employer's name, address and zip code
-            D: Control Number
-            E: Employee's first name and initial
-            F: Employee's address and zip code
-            1: Wages, tips, other compensation
-            2: Federal income tax withheld
-            3: Social security wages
-            4: Social security tax withheld
-            5: Medicare wages and tips
-            6: Medicare tax withheld
-            7: Social security tips
-            8: Alocated tips
-            10: Dependent care benefits
-            11: Nonqualified plans
-            12: See instructions for box 12
+            Employee's Social Security Number
+            Employer identification number
+            Employer's name, address and zip code
+            Control Number
+            Employee's first name and initial
+            Employee's address and zip code
+            Wages, tips, other compensation
+            Federal income tax withheld
+            Social security wages
+            Social security tax withheld
+            Medicare wages and tips
+            Medicare tax withheld
+            Social security tips
+            Alocated tips
+            Dependent care benefits
+            Nonqualified plans
+            See instructions for box 12
               (this is 4 input fields 12a, 12b, 12c and 12d)
-            13: statutory employee(checkbox), Retirement plan(checkbox), Third-party sick pay(checkbox)
-            14: Other
-            15: State and Employer's state ID Number
-            16: State wages, tips, etc
-            17: State income tax
-            18: Local wages, tips, etc..
-            19: Local income tax
-            20: Locality name
+            statutory employee(checkbox), Retirement plan(checkbox), Third-party sick pay(checkbox)
+            Other
+            State and Employer's state ID Number
+            State wages, tips, etc
+            State income tax
+            Local wages, tips, etc..
+            Local income tax
+            Locality name
 
             Based on this data, return the values in the JSON structure. you can get value from scanned data.
             valid output: 
@@ -188,7 +191,6 @@ async def upload_multiple_files(files: list[UploadFile] = File(...)):
 
     return {"file_paths": file_paths}
 
-
 @router.post(
     "/test-email",
     dependencies=[Depends(get_current_active_superuser)],
@@ -236,3 +238,14 @@ async def generate_response(message: str) -> dict:
 @router.get("/health-check/")
 async def health_check() -> bool:
     return True
+
+
+def print_text(response: vision.AnnotateImageResponse):
+    print("=" * 80)
+    for annotation in response.text_annotations:
+        vertices = [f"({v.x},{v.y})" for v in annotation.bounding_poly.vertices]
+        print(
+            f"{repr(annotation.description):42}",
+            ",".join(vertices),
+            sep=" | ",
+        )
