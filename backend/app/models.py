@@ -1,8 +1,17 @@
 import uuid
+from sqlite3 import Time
 
 from pydantic import EmailStr
+from sqlalchemy import Date
 from sqlmodel import Field, Relationship, SQLModel
 from pydantic import BaseModel
+
+STATUS_COMPLETE = 1
+STATUS_PENDING = 0
+
+DOCUMENT_W2 = "W-2"
+DOCUMENT_F1090 = "F-1090"
+
 
 # Shared properties
 class UserBase(SQLModel):
@@ -158,6 +167,7 @@ class TaxDocumentResponse(BaseModel):
     message: str
     keyword: str
     value: str
+    options: list[str] = Field(default_factory=list)
 
 class ChatRequest(BaseModel):
     message: str
@@ -166,3 +176,37 @@ class ChatRequest(BaseModel):
 class VerifyCodeRequest(BaseModel):
     email: str
     verification_code: str
+#
+# # History Model
+# class HistoryBase(SQLModel):
+#     date: Date = Field(default=None, max_length=255)
+#     time: Time = Field(default=None, max_length=255)
+#     document_name: str = Field(default=None, max_length=255)
+#     status: int = Field(default=STATUS_PENDING, max_length=10)
+#     owner: str = Field(default=None, max_length=255)
+#     size: int = Field(default=0, max_length=255)
+#     file_type: str = Field(default=None, max_length=10)
+#     document_type: str = Field(default=None, max_length=10)
+#
+# class HistoryCreate(HistoryBase):
+#     pass
+#
+# class History(HistoryBase, table=True):
+#     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+#     owner_id: uuid.UUID = Field(
+#         foreign_key="user.id", nullable=False, ondelete="CASCADE"
+#     )
+#     owner: "User" = Relationship(back_populates="history")
+#
+# class HistoryPublic(HistoryBase):
+#     id: uuid.UUID
+#     owner_id: uuid.UUID
+#
+# class HistorysPublic(SQLModel):
+#     data: list[HistoryPublic]
+#     count: int
+#
+# class HistoryUpdate(HistoryBase):
+#     id: uuid.UUID
+
+
