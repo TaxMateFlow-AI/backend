@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from sqlite3 import Time
 
 from pydantic import EmailStr
@@ -210,3 +211,40 @@ class VerifyCodeRequest(BaseModel):
 #     id: uuid.UUID
 
 
+# Database model for Submissions
+class SubmissionBase(SQLModel):
+    date: datetime
+    time: str
+    document: str = Field(max_length=255)
+    status: str = Field(max_length=50)  # e.g., "Completed", "Pending"
+    owner: str = Field(max_length=255)  # e.g., "User_123"
+    size: str = Field(max_length=50)  # e.g., "4.5MB"
+    type: str = Field(max_length=10)  # e.g., "PDF", "DOCX", "XLS"
+    priority: str = Field(max_length=10)  # e.g., "High", "Medium", "Low"
+
+class SubmissionCreate(SubmissionBase):
+    pass
+
+
+class SubmissionUpdate(SubmissionBase):
+    date: datetime | None = None
+    time: str | None = None
+    document: str | None = None
+    status: str | None = None
+    owner: str | None = None
+    size: str | None = None
+    type: str | None = None
+    priority: str | None = None
+
+
+class Submission(SubmissionBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+
+
+class SubmissionPublic(SubmissionBase):
+    id: uuid.UUID
+
+
+class SubmissionsPublic(SQLModel):
+    data: list[SubmissionPublic]
+    count: int
