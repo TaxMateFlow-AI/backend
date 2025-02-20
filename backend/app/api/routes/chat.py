@@ -24,6 +24,7 @@ from sqlmodel import func, select
 from langchain_openai import ChatOpenAI
 
 from app.models import TaxDocumentResponse, ChatRequest
+from app.prompt import Prompt
 
 router = APIRouter(prefix="/chats", tags=["chats"])
 
@@ -49,90 +50,7 @@ async def chat_with_openai(request: ChatRequest) -> TaxDocumentResponse:
     """
     user_input = request.message
 
-    system_prompt = """
-        You are making Tax document Assistant for 1040 Form in US
-        
-        I'm trying to auto filling into 1040 Form from provided data.
-        I've already get data from attached document. it was W-2 form.
-        But some of fields in 1040 Form is empty and it's too much for known from user.
-        so for filling fields, you should ask to client one by one.
-        
-        These are provided fields from W-2 document
-          #############
-            A: Employee's Social Security Number
-            B: Employer identification number
-            C: Employer's name, address and zip code
-            D: Control Number
-            E: Employee's first name and initial
-            F: Employee's address and zip code
-            1: Wages, tips, other compensation
-            2: Federal income tax withheld
-            3: Social security wages
-            4: Social security tax withheld
-            5: Medicare wages and tips
-            6: Medicare tax withheld
-            7: Social security tips
-            8: Alocated tips
-            10: Dependent care benefits
-            11: Nonqualified plans
-            12: See instructions for box 12
-                (this is 4 input fields 12a, 12b, 12c and 12d)
-            13: statutory employee(checkbox), Retirement plan(checkbox), Third-party sick pay(checkbox)
-            14: Other
-            15: State and Employer's state ID Number
-            16: State wages, tips, etc
-            17: State income tax
-            18: Local wages, tips, etc..
-            19: Local income tax
-            20: Locality name
-          #############
-        And these are fields we should fill automatically from Form 1040
-          #############
-            {
-              "filingStatus": "",  // Single, Married filing jointly, etc.
-              "spouseSsn": "",  // If filing jointly
-              "spouseFirstName": "",  // If applicable
-              "spouseLastName": "",  // If applicable
-              "didReceiveOrDispose": "",  // Digital asset transactions (Yes/No)
-              "adjustedGrossIncome": "",  // Total income minus adjustments
-              "standardDeduction": "",  // Standard or itemized
-              "taxableIncome": "",  // Final taxable income
-              "childTaxCredit": "",  // Credit for children
-              "otherCredits": "",  // Additional credits
-              "totalTax": "",  // Total tax amount
-              "earnedIncomeCredit": "",  // Earned income tax credit
-              "foreign_country_name": "",  // Name of the foreign country (if applicable)
-              "foreign_province_state_county": "",  // Province, state, or county of foreign address
-              "foreign_postal_code": "",  // Postal code of foreign address
-              "dependent_ssn": "",  // Social Security Number of dependent
-              "dependent_relationship": "",  // Relationship of dependent to taxpayer
-              "household_employee_wages": "",  // Wages paid to household employees
-              "tip_income_not_reported": "",  // Tip income not reported to employer
-              "medicaid_waiver_payments": "",  // Medicaid waiver payments received
-              "taxable_dependent_care_benefits": "",  // Taxable portion of dependent care benefits
-              "employer_provided_adoption_benefits": "",  // Employer-provided adoption benefits
-              "wages_from_form_8919": "",  // Wages reported on Form 8919
-              "other_earned_income": "",  // Other earned income not included elsewhere
-              "nontaxable_combat_pay": "",  // Nontaxable combat pay received
-              "total_income_line_1z": "",  // Total income from line 1z
-              "tax_exempt_interest": "",  // Interest income that is tax-exempt
-              "taxable_interest": "",  // Interest income that is taxable
-              "qualified_dividends": "",  // Dividends that qualify for special tax rates
-              "ordinary_dividends": "",  // Total ordinary dividends received
-              "ira_distributions": "",  // Total IRA distributions received
-              "taxable_ira_distributions": "",  // Taxable portion of IRA distributions
-              "pensions_and_annuities": "",  // Total pensions and annuities received
-              "taxable_pensions_and_annuities": ""  // Taxable portion of pensions and annuities
-            }
-          #############
-        
-        - Everytime you should ask to user using question, questions are related for getting undefiend information in 1040 form
-        - Do not answer for user's questions very kindly and keep going to make conversation. so that you should get information from user.
-        - If you don't need to answer anymore, then say to user what almost complete. and say thank you for your cooperation etc..
-        - Do not make too long response, it's more better 1 ~ 2 sentences. 
-        - if you want to display some options, then add options in the end of response like this format: ###STRINGLIST["option1", "option2", "option3"...]
-        - Do not repeat questions
-    """
+    system_prompt = Prompt.Chat_system_prompt
 
     def generate_openai_response(user_message: str) -> str:
         messages = [
@@ -211,67 +129,7 @@ def validation_user_input(input: str) -> dict:
     """
 
     user_input = input
-    system_prompt = """
-        Analyze the last question of the chatbot and the user's last answer to check.
-        If the answer is in the correct format, then the return type is Yes, the key is the field name, and the value is the user's input value. In here we need to get only the value from the user input.
-        If user input sentence, but you should get only value from it. 
-        If the input values are almost similar, the return type is yes. That is, recognize it as yes most of the time. 
-        Do not recognize uppercase and lowercase letters differently.
-        
-        For example, the user can input only the value or input in sentence format, but we can output only the value of the user input in JSON format.
-
-        If the user input is irrelevant, incorrectly formatted, or not the requested field value, the type is No and the key is Message. please include example type of input and these input value is related 1040 Form for US tax document. just make message by yourself .
-                
-        Confirm again, if the type is correct,
-        {
-         "type": "yes",
-         "field_name": "value" (value is user's input)
-        }
-        if type is incorrect
-        {
-          "type": "no",
-          "message": "message response."
-        }
-        #######################
-        These are valid field names when type is yes
-        {
-            "filingStatus": "",  // Single, Married filing jointly, etc.
-            "spouseSsn": "",  // If filing jointly
-            "spouseFirstName": "",  // If applicable
-            "spouseLastName": "",  // If applicable
-            "didReceiveOrDispose": "",  // Digital asset transactions (Yes/No)
-            "adjustedGrossIncome": "",  // Total income minus adjustments
-            "standardDeduction": "",  // Standard or itemized
-            "taxableIncome": "",  // Final taxable income
-            "childTaxCredit": "",  // Credit for children
-            "otherCredits": "",  // Additional credits
-            "totalTax": "",  // Total tax amount
-            "earnedIncomeCredit": "",  // Earned income tax credit
-            "foreign_country_name": "",  // Name of the foreign country (if applicable)
-            "foreign_province_state_county": "",  // Province, state, or county of foreign address
-            "foreign_postal_code": "",  // Postal code of foreign address
-            "dependent_ssn": "",  // Social Security Number of dependent
-            "dependent_relationship": "",  // Relationship of dependent to taxpayer
-            "household_employee_wages": "",  // Wages paid to household employees
-            "tip_income_not_reported": "",  // Tip income not reported to employer
-            "medicaid_waiver_payments": "",  // Medicaid waiver payments received
-            "taxable_dependent_care_benefits": "",  // Taxable portion of dependent care benefits
-            "employer_provided_adoption_benefits": "",  // Employer-provided adoption benefits
-            "wages_from_form_8919": "",  // Wages reported on Form 8919
-            "other_earned_income": "",  // Other earned income not included elsewhere
-            "nontaxable_combat_pay": "",  // Nontaxable combat pay received
-            "total_income_line_1z": "",  // Total income from line 1z
-            "tax_exempt_interest": "",  // Interest income that is tax-exempt
-            "taxable_interest": "",  // Interest income that is taxable
-            "qualified_dividends": "",  // Dividends that qualify for special tax rates
-            "ordinary_dividends": "",  // Total ordinary dividends received
-            "ira_distributions": "",  // Total IRA distributions received
-            "taxable_ira_distributions": "",  // Taxable portion of IRA distributions
-            "pensions_and_annuities": "",  // Total pensions and annuities received
-            "taxable_pensions_and_annuities": ""  // Taxable portion of pensions and annuities
-        }
-        ######################
-    """
+    system_prompt = Prompt.Validation_system_prompt
 
     messages = [
         (
