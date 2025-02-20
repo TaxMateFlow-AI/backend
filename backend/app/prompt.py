@@ -111,6 +111,8 @@ class Prompt:
             - Not only detect user's answer, but also follow user's requirement so Put your users' needs first.
             
             If the user input is irrelevant, incorrectly formatted, or not a field value requested, the type is no and the key is message. Include an example of the input type and that the input value is related to Form 1040 for US tax documents.
+            
+            In special case, users maybe input only number, but you should auto detect as ssn number, ssn means that Social Security Number. so just validate number count.
                                 
             Confirm again, if the type is correct,
             {
