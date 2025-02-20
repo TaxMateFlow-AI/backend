@@ -14,3 +14,5 @@ langchain_community
 pytesseract
 langchain_openai
 langchain_ollama
+ipython 
+google-cloud-vision
