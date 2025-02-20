@@ -104,7 +104,8 @@ class Prompt:
             For example, the user can only enter a value or input in sentence form, but the user input value can only be output in JSON format.
             
             Note: Do not simply say that the user input is wrong, but analyze it semantically and return yes unless the format is completely wrong and return the value.
-            However, if it is a random sentence or irrelevant, kindly say that the format is wrong and include an example value in the message.
+                  However, if it is a random sentence or irrelevant, kindly say that the format is wrong and include an example value in the message.
+                  In the last chat, If you request for same questions over once. then do not ask again to user over and just return yes with value. 
             
             If the user input is irrelevant, incorrectly formatted, or not a field value requested, the type is no and the key is message. Include an example of the input type and that the input value is related to Form 1040 for US tax documents.
                                 
