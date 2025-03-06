@@ -2,10 +2,22 @@ import logging
 import os
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from http.client import HTTPException
 from pathlib import Path
 from typing import Any
+import mailchimp_marketing as MailChimpMarketing
+from aiohttp import ClientError
+import boto3
+from botocore.exceptions import BotoCoreError
+from google.auth.environment_vars import AWS_REGION
+from mailchimp_marketing.api_client import ApiClientError
 
-import emails  # type: ignore
+mailchimp = MailChimpMarketing.Client()
+mailchimp.set_config({
+    "api_key": "f144f080eb70fda4598fa4f3e19b7fde-us8",
+    "server": "us8"  # e.g., 'us1', 'us2'
+})
+
 import jwt
 import requests
 from dotenv import load_dotenv
@@ -20,9 +32,17 @@ logger = logging.getLogger(__name__)
 
 load_dotenv();
 
-MAILGUN_DOMAIN = os.getenv("MAILGUN_DOMAIN", "")
-MAILGUN_API_KEY = os.getenv("MAILGUN_API_KEY", "")
 FROM_EMAIL_ADDRESS = os.getenv("FROM_EMAIL_ADDRESS", "")
+AWS_REGION = os.getenv("AWS_REGION", "")
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", "")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "")
+
+ses_client = boto3.client(
+    "ses",
+    region_name=AWS_REGION,
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+)
 
 @dataclass
 class EmailData:
@@ -39,27 +59,29 @@ def render_email_template(*, template_name: str, context: dict[str, Any]) -> str
 
 
 def send_email(
-    *,
     email_to: str,
     subject: str = "",
     html_content: str = "",
-) -> None:
-    MAILGUN_API_URL = f"https://api.mailgun.net/v3/{MAILGUN_DOMAIN}/messages"
-
+):
     try:
-        resp = requests.post(MAILGUN_API_URL, auth=("api", MAILGUN_API_KEY), data={
-            "from": FROM_EMAIL_ADDRESS,
-            "to": email_to,
-            "subject": subject,
-            "html": html_content
-        })
-        if resp.status_code == 200:
-            logger.info(f"send email result: {resp.json()}")
-        else:
-            logger.error(f"send email result: {resp.json()}")
-    except Exception as e:
-        logger.error(f"send email result: {e}")
-
+        response = ses_client.send_email(
+            Source=FROM_EMAIL_ADDRESS,  # Replace with your verified address
+            Destination={"ToAddresses": [email_to]},
+            Message={
+                "Subject": {"Data": subject, "Charset": "UTF-8"},
+                "Body": {
+                    "Html": {"Data": html_content, "Charset": "UTF-8"},
+                },
+            },
+        )
+        logging.info(f"Email sent successfully! Message ID: {response['MessageId']}")
+        return {"message": "Email sent successfully!", "message_id": response["MessageId"]}
+    except ClientError as e:
+        logging.error(f"AWS SES ClientError: {e.response['Error']['Message']}")
+        raise HTTPException(status_code=500, detail=f"Error sending email: {e.response['Error']['Message']}")
+    except BotoCoreError as e:
+        logging.error(f"BotoCoreError: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 
 def generate_test_email(email_to: str) -> EmailData:
