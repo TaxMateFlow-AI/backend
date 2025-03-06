@@ -123,6 +123,7 @@ class Message(SQLModel):
 class Token(SQLModel):
     access_token: str
     token_type: str = "bearer"
+    email: str = ""
 
 
 # Contents of JWT token
@@ -247,4 +248,32 @@ class SubmissionPublic(SubmissionBase):
 
 class SubmissionsPublic(SQLModel):
     data: list[SubmissionPublic]
+    count: int
+
+# Database model for Opinion
+class OpinionBase(SQLModel):
+    date: datetime
+    name: str = Field(max_length=255)
+    email: str = Field(max_length=255)
+    message: str = Field(max_length=255)
+    status: int = Field(default=0)
+
+class OpinionCreate(OpinionBase):
+    pass
+
+class OpinionUpdate(OpinionBase):
+    date: datetime | None = None
+    name: str | None = None
+    email: str | None = None
+    message: str | None = None
+    status: int | None = None
+
+class Opinion(OpinionBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+
+class OpinionPublic(OpinionBase):
+    id: uuid.UUID
+
+class OpinionsPublic(SQLModel):
+    data: list[OpinionPublic]
     count: int

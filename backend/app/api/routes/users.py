@@ -165,7 +165,7 @@ def register_user(session: SessionDep, user_in: UserRegister) -> Any:
             user.id, expires_delta=access_token_expires
         )
     )
-    verification_link = f"{BACKEND_ENDPOINT}api/v1/users/verify-email/?token={result_token.access_token}"
+    verification_link = f"{BACKEND_ENDPOINT}api/v1/users/verify-email/?email={user.email}&token={result_token.access_token}"
 
     print("------>", f"{verification_link}")
 
@@ -180,7 +180,7 @@ def register_user(session: SessionDep, user_in: UserRegister) -> Any:
     return user
 
 @router.get("/verify-email/", response_model=None)
-def verify_email(token: str, session: SessionDep) -> Any:
+def verify_email(email: str, token: str, session: SessionDep) -> Any:
     """
     Verify email from the provided link and redirect.
     """
@@ -205,6 +205,7 @@ def verify_email(token: str, session: SessionDep) -> Any:
 
         # Redirect to the next link
         next_url = f"{settings.EMAIL_VERIFICATION_REDIRECT_URL}"
+        print("------>", f"{next_url}")
         return RedirectResponse(url=next_url)
 
     except jwt.ExpiredSignatureError:

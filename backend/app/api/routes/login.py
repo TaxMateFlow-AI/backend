@@ -99,7 +99,7 @@ def verify_code(
     return Token(
         access_token=security.create_access_token(
             user.id, expires_delta=access_token_expires
-        )
+        ), email=user.email
     )
 
 @router.post("/login/send-verification-code")
@@ -114,7 +114,7 @@ def send_verification_code(
         session=session, email=form_data.username, password=form_data.password
     )
     if not user:
-        raise HTTPException(status_code=400, detail="Incorrect email or password")
+        raise HTTPException(status_code=400, detail="User not found")
     elif not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
 
