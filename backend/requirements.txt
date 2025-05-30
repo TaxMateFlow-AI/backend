@@ -5,7 +5,6 @@ sqlmodel
 jwt
 PyJWT
 passlib
-pydantic_setting
 psycopg
 emails
 openai
@@ -16,3 +15,5 @@ langchain_openai
 langchain_ollama
 ipython 
 google-cloud-vision
+mailchimp-marketing
+boto3

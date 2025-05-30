@@ -74,7 +74,7 @@
 
         <!-- Help Link -->
         <mj-text align="center" font-size="16px" line-height="1.6" color="#555">
-          Need help? Visit <a href="https://taxmate.com" style="color: #0066FF; text-decoration: none;">TaxMate.com</a> for support.
+          Need help? Visit <a href="https://taxmateflow.ai" style="color: #0066FF; text-decoration: none;">TaxMateFlow.AI</a> for support.
         </mj-text>
 
         <!-- Closing Message -->
@@ -89,7 +89,7 @@
       <mj-column>
         <mj-text align="center" font-size="12px" color="#ffffff" text-shadow="0 1px 2px rgba(0,0,0,0.2)">
           © 2025 TaxMate. All rights reserved.<br />
-          <a href="https://taxmate.com" style="color: #ffffff; text-decoration: underline;">Visit TaxMate.com</a>
+          <a href="https://taxmateflow.ai" style="color: #ffffff; text-decoration: underline;">Visit TaxMateFlow.AI</a>
         </mj-text>
       </mj-column>
     </mj-section>
